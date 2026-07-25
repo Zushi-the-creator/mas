@@ -91,6 +91,11 @@ describe("calculate — תרחיש דוגמה מהמפרט (סעיף 13)", () =>
     expect(result.totalTaxPaid).toBe(147_536);
   });
 
+  it("זיכוי קצבה מוגבל בתקרת הכנסה מזכה (116,400 ל-2025)", () => {
+    // eligible = min(21,362, 7% × 116,400 = 8,148) → 8,148 × 35% = 2,851.8
+    expect(result.pensionCredit).toBeCloseTo(8_148 * 0.35, 0);
+  });
+
   it("החזר חיובי קיים", () => {
     expect(result.refund).toBeGreaterThan(0);
   });

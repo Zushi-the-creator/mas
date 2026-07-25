@@ -42,6 +42,12 @@ export const NI_CAP_ANNUAL: Record<TaxYear, number> = {
 
 export const PENSION_CREDIT_RATE = 0.35; // סעיף 45א — עמית שכיר
 export const PENSION_CREDIT_INSURABLE_CAP_RATE = 0.07;
+// "הכנסה מזכה" שנתית לשכיר (סעיף 47) — תקרת הבסיס לזיכוי 45א:
+// 9,400 ₪/חודש ב-2024, 9,700 ₪/חודש ב-2025
+export const QUALIFYING_INCOME_CAP: Record<TaxYear, number> = {
+  2024: 112800,
+  2025: 116400,
+};
 export const LIFE_INSURANCE_CREDIT_RATE = 0.25;
 export const DONATION_CREDIT_RATE = 0.35;
 export const DONATION_MIN = 207;

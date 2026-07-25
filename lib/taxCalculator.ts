@@ -5,6 +5,7 @@ import {
   YASEF_RATE,
   PENSION_CREDIT_RATE,
   PENSION_CREDIT_INSURABLE_CAP_RATE,
+  QUALIFYING_INCOME_CAP,
   LIFE_INSURANCE_CREDIT_RATE,
   DONATION_CREDIT_RATE,
   DONATION_MIN,
@@ -94,9 +95,11 @@ export function calculate(data: UserData, filerIsFemale = false): CalculationRes
   const creditPointsValue = cp.total * CREDIT_POINT_VALUE[year];
 
   // זיכוי קצבה (סעיף 45א — עמית שכיר)
+  // הבסיס לזיכוי מוגבל ב"הכנסה מזכה" (סעיף 47), לא בהכנסה המבוטחת בפועל
   const pensionEligible = Math.min(
     sumEmployeePension,
-    PENSION_CREDIT_INSURABLE_CAP_RATE * sumInsurable,
+    PENSION_CREDIT_INSURABLE_CAP_RATE *
+      Math.min(sumInsurable, QUALIFYING_INCOME_CAP[year]),
   );
   const pensionCredit = pensionEligible * PENSION_CREDIT_RATE;
 

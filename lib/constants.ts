@@ -2,14 +2,16 @@
 
 export type TaxYear = 2024 | 2025;
 
+// מקור: אומת מול הסימולטור הרשמי של רשות המסים (07/2026).
+// מדרגת 35% עד 560,280 ו-47% עד 721,560 — לא 526,920/688,200 כפי שהופיע במפרט המקורי.
 export const TAX_BRACKETS: Record<TaxYear, Array<{ cap: number; rate: number }>> = {
   2024: [
     { cap: 84120, rate: 0.10 },
     { cap: 120720, rate: 0.14 },
     { cap: 193800, rate: 0.20 },
     { cap: 269280, rate: 0.31 },
-    { cap: 526920, rate: 0.35 },
-    { cap: 688200, rate: 0.47 },
+    { cap: 560280, rate: 0.35 },
+    { cap: 721560, rate: 0.47 },
     { cap: Infinity, rate: 0.50 },
   ],
   2025: [
@@ -17,8 +19,8 @@ export const TAX_BRACKETS: Record<TaxYear, Array<{ cap: number; rate: number }>>
     { cap: 120720, rate: 0.14 },
     { cap: 193800, rate: 0.20 },
     { cap: 269280, rate: 0.31 },
-    { cap: 526920, rate: 0.35 },
-    { cap: 688200, rate: 0.47 },
+    { cap: 560280, rate: 0.35 },
+    { cap: 721560, rate: 0.47 },
     { cap: Infinity, rate: 0.50 },
   ],
 };

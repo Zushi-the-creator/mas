@@ -5,6 +5,7 @@ import { UserData } from "@/lib/types";
 import { calculate } from "@/lib/taxCalculator";
 import { buildForm135 } from "@/lib/form135";
 import { buildChecklist } from "@/lib/checklist";
+import { buildExtensionCase } from "@/lib/extensionCase";
 
 interface Props {
   data: UserData;
@@ -22,18 +23,22 @@ export default function StepResults({ data }: Props) {
   const isRefund = result.refund >= 0;
   const sections = Array.from(new Set(form135.map((f) => f.section)));
 
-  const downloadJSON = () => {
-    const blob = new Blob(
-      [JSON.stringify({ data, result, form135, checklist }, null, 2)],
-      { type: "application/json" },
-    );
+  const download = (obj: unknown, name: string) => {
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `tax-refund-${data.personal.taxYear}.json`;
+    a.download = name;
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const downloadJSON = () =>
+    download({ data, result, form135, checklist }, `tax-refund-${data.personal.taxYear}.json`);
+
+  // קובץ תיק לתוסף הדפדפן — מודבק ב-popup של התוסף וממלא את מסכי הרשות
+  const downloadCase = () =>
+    download(buildExtensionCase(data, result), `case-${data.personal.taxYear}.json`);
 
   return (
     <div className="space-y-8">
@@ -217,6 +222,9 @@ export default function StepResults({ data }: Props) {
       <div className="flex flex-wrap gap-3">
         <button onClick={downloadJSON} className="btn-primary">
           הורד סיכום (JSON)
+        </button>
+        <button onClick={downloadCase} className="btn-primary">
+          הורד קובץ תיק לתוסף המילוי
         </button>
         <a
           href="https://www.gov.il/he/Departments/General/itc-calculator"

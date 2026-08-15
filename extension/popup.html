@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: "Segoe UI", Arial, sans-serif; width: 380px; margin: 0; padding: 16px; background: #f6f8f7; color: #1c2422; font-size: 13.5px; }
+  h1 { font-size: 15px; margin: 0 0 4px; color: #0a544d; }
+  .screen-badge { font-size: 12px; padding: 3px 10px; border-radius: 999px; display: inline-block; margin-bottom: 12px; }
+  .screen-badge.known { background: #e3efed; color: #0a544d; }
+  .screen-badge.unknown { background: #f9f1e2; color: #7a5410; }
+  textarea { width: 100%; height: 70px; border: 1px solid #dde4e2; border-radius: 8px; padding: 8px; font-family: monospace; font-size: 11px; box-sizing: border-box; }
+  button { border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; margin-inline-end: 6px; margin-top: 8px; }
+  .primary { background: #0f6b62; color: #fff; }
+  .ghost { background: #fff; border: 1px solid #dde4e2; color: #5b6663; }
+  #plan { max-height: 180px; overflow-y: auto; margin-top: 10px; background: #fff; border: 1px solid #dde4e2; border-radius: 8px; }
+  .row { display: flex; justify-content: space-between; padding: 5px 10px; border-bottom: 1px solid #eef2f1; font-size: 12.5px; }
+  .row .v { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .row.ok { background: #e8f3ec; }
+  .row.bad { background: #f9e9e8; }
+  #log { font-size: 12px; margin-top: 10px; color: #5b6663; }
+  .verdict { border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-weight: 600; font-size: 13px; }
+  .verdict.match { background: #e8f3ec; color: #1f5c38; }
+  .verdict.debt { background: #f9e9e8; color: #8c2f2a; }
+  .verdict.dev { background: #f9f1e2; color: #7a5410; }
+  .note { font-size: 11px; color: #5b6663; margin-top: 12px; border-top: 1px solid #dde4e2; padding-top: 8px; }
+</style>
+</head>
+<body>
+  <h1>מס חוזר — עוזר מילוי</h1>
+  <div id="screen" class="screen-badge unknown">מזהה מסך…</div>
+
+  <div id="caseSection">
+    <div style="font-weight:600;margin-bottom:4px">קובץ התיק (JSON)</div>
+    <textarea id="caseInput" placeholder='הדבק כאן את קובץ התיק שהופק מהמחשבון, למשל: {"taxYear":2025,"fields":{"158":534893,...}}'></textarea>
+    <button id="loadCase" class="ghost">טען תיק</button>
+  </div>
+
+  <div id="plan"></div>
+
+  <div>
+    <button id="fill" class="primary" disabled>מלא מסך זה</button>
+    <button id="verify" class="ghost" disabled>אמת מילוי</button>
+    <button id="readResult" class="ghost" disabled>בדוק תוצאה</button>
+  </div>
+
+  <div id="verdict"></div>
+  <div id="log"></div>
+
+  <div class="note">
+    התוסף ממלא שדות בלבד — הוא לעולם אינו לוחץ "שידור". האישור הסופי, וההצהרה, שלך.
+    כל הנתונים נשארים בדפדפן; התוסף אינו שולח דבר לשום שרת.
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

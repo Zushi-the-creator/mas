@@ -1,0 +1,11 @@
+/* סימון ויזואלי של שדות שמולאו על ידי התוסף */
+.mas-filled-ok {
+  outline: 2px solid #0f6b62 !important;
+  outline-offset: 1px;
+  background-color: #e3efed !important;
+}
+.mas-filled-diff {
+  outline: 2px solid #b3403a !important;
+  outline-offset: 1px;
+  background-color: #f9e9e8 !important;
+}

@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "מס חוזר — עוזר מילוי דוח שנתי",
+  "version": "0.1.0",
+  "description": "ממלא את מסכי שידור הדוח השנתי (1301) באתר רשות המסים מתוך תיק מאומת — בדפדפן שלך בלבד, בלי לשלוח נתונים לשום שרת.",
+  "default_locale": null,
+  "content_scripts": [
+    {
+      "matches": ["https://secapp.taxes.gov.il/*"],
+      "js": ["fieldmap.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "מס חוזר — עוזר מילוי"
+  },
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://secapp.taxes.gov.il/*"]
+}

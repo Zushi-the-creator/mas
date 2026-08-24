@@ -6,6 +6,13 @@ html {
   font-feature-settings: "ss01";
 }
 
+body {
+  background:
+    radial-gradient(900px 400px at 85% -50px, rgba(244, 225, 148, 0.35), transparent),
+    radial-gradient(700px 380px at 8% 0, rgba(205, 228, 154, 0.4), transparent),
+    #f8fbef;
+}
+
 input,
 select,
 textarea {
@@ -13,26 +20,32 @@ textarea {
 }
 
 .input {
-  @apply w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none bg-white;
+  @apply w-full rounded-xl border border-brand-200 px-3.5 py-2.5 text-sm bg-white
+    focus:border-brand-500 focus:ring-2 focus:ring-brand-300 outline-none transition;
 }
 .label {
-  @apply block text-sm font-medium text-slate-700 mb-1;
+  @apply block text-sm font-medium text-soft mb-1.5;
 }
 .btn {
-  @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition;
+  @apply inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold transition;
 }
 .btn-primary {
-  @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  @apply btn bg-brand-600 text-white hover:bg-brand-700 shadow-pillow hover:shadow-none active:scale-[0.98];
 }
 .btn-ghost {
-  @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+  @apply btn bg-white text-soft border border-brand-200 hover:border-brand-400 hover:text-ink;
 }
 .card {
-  @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6;
-}
-.hbox {
-  @apply flex flex-wrap items-end gap-3;
+  @apply bg-white rounded-3xl shadow-card border border-brand-100 p-7;
 }
 .section-title {
-  @apply text-lg font-semibold text-slate-800 mb-4;
+  @apply text-lg font-bold text-ink mb-5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeUp,
+  .animate-ringPulse,
+  .animate-popIn {
+    animation: none !important;
+  }
 }

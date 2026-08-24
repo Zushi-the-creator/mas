@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-heb bg-slate-50 text-slate-900 min-h-screen">
+      <body className="font-heb text-ink min-h-screen">
         {children}
       </body>
     </html>

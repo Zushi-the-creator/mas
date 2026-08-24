@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { UserData } from "@/lib/types";
 import { calculate } from "@/lib/taxCalculator";
 import { buildForm135 } from "@/lib/form135";
@@ -13,6 +13,28 @@ interface Props {
 
 const fmt = (n: number) =>
   Math.round(n).toLocaleString("he-IL", { maximumFractionDigits: 0 });
+
+// ספירה עולה של הסכום — 1.4 שניות עם האטה בסוף; מדלגת על האנימציה במצב reduced-motion
+function useCountUp(target: number, ms = 1400) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setValue(target);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / ms);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(target * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, ms]);
+  return value;
+}
 
 export default function StepResults({ data }: Props) {
   const [isFemale, setIsFemale] = useState(false);
@@ -74,28 +96,8 @@ export default function StepResults({ data }: Props) {
         </div>
       )}
 
-      {/* סיכום ראשי */}
-      <div
-        className={`rounded-xl p-6 text-center border-2 ${
-          isRefund
-            ? "bg-green-50 border-green-400"
-            : "bg-red-50 border-red-400"
-        }`}
-      >
-        <div className="text-sm font-medium text-slate-600 mb-1">
-          {isRefund ? "החזר משוער" : "חוב משוער"}
-        </div>
-        <div
-          className={`text-4xl font-bold ${
-            isRefund ? "text-green-700" : "text-red-700"
-          }`}
-        >
-          {fmt(Math.abs(result.refund))} ₪
-        </div>
-        <div className="mt-2 text-xs text-slate-500">
-          רמת ביטחון: {hebConfidence(result.confidence)}
-        </div>
-      </div>
+      {/* סיכום ראשי — הרגע הגדול */}
+      <RefundHero refund={result.refund} confidence={result.confidence} />
 
       {/* פירוט חישוב */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -255,6 +257,43 @@ export default function StepResults({ data }: Props) {
 
 function hebConfidence(c: "high" | "medium" | "low"): string {
   return c === "high" ? "גבוהה" : c === "medium" ? "בינונית" : "נמוכה";
+}
+
+function RefundHero({
+  refund,
+  confidence,
+}: {
+  refund: number;
+  confidence: "high" | "medium" | "low";
+}) {
+  const isRefund = refund >= 0;
+  const animated = useCountUp(Math.abs(refund));
+  return (
+    <div
+      className={`animate-popIn rounded-3xl p-10 text-center ${
+        isRefund
+          ? "bg-gradient-to-br from-brand-100 via-butter-100 to-brand-200"
+          : "bg-red-50 border-2 border-red-300"
+      }`}
+    >
+      <div className="text-sm font-semibold text-soft mb-2">
+        {isRefund ? "🎉 מגיע לך החזר של" : "⚠️ החישוב מצביע על חוב של"}
+      </div>
+      <div
+        className={`text-6xl font-extrabold tracking-tight tabular-nums ${
+          isRefund ? "text-brand-800" : "text-red-700"
+        }`}
+      >
+        {fmt(animated)} ₪
+      </div>
+      <div className="mt-3 text-xs text-soft">
+        רמת ביטחון: {hebConfidence(confidence)}
+        {isRefund
+          ? " · ההחזר יגיע ישירות לחשבון הבנק שלך"
+          : " · במצב כזה מומלץ לא להגיש — ראו האזהרה למעלה"}
+      </div>
+    </div>
+  );
 }
 
 function CalcCard({ title, children }: { title: string; children: React.ReactNode }) {

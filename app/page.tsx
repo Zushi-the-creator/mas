@@ -6,12 +6,16 @@ export default function Home() {
   return (
     <main className="max-w-5xl mx-auto px-4 py-8">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">
-          מערכת לחישוב החזר מס והכנת טופס 135
+        <div className="inline-flex items-center gap-2 rounded-full bg-brand-100 border border-brand-200 px-4 py-1 text-xs font-bold text-brand-700 mb-4">
+          💸 מס חוזר
+        </div>
+        <h1 className="text-3xl font-extrabold text-ink tracking-tight">
+          בואו נבדוק כמה כסף מגיע לך בחזרה
         </h1>
-        <p className="text-slate-600 mt-2">
-          חישוב החזר מס שנתי לשכירים בישראל לפי כללי מס הכנסה. המערכת נותנת
-          הערכה בלבד — לפני הגשה יש לאמת בסימולטור הרשמי של רשות המסים.
+        <p className="text-soft mt-2 max-w-xl">
+          כמה שאלות קצרות, הנתונים מטופסי ה-106 — ובסוף: חישוב מלא של ההחזר
+          וכל מה שצריך להגשה. הערכה בלבד; לפני הגשה מומלץ לאמת בסימולטור
+          הרשמי של רשות המסים.
         </p>
       </header>
       <Wizard />

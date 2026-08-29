@@ -168,6 +168,9 @@
   .tchip.warn { background: var(--warn-bg); color: var(--warn-ink); }
   .tchip.err { background: var(--bad-bg); color: var(--bad-ink); }
   .doc-row .sum { color: var(--muted); font-size: 12px; }
+  .doc-del { border: none; background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 15px; padding: 4px 8px; border-radius: 8px; flex-shrink: 0; }
+  .doc-del:hover { background: var(--bad-bg); color: var(--bad-ink); }
   .guide details { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; background: var(--card); }
   .guide summary { padding: 9px 14px; font-weight: 600; font-size: 13.5px; cursor: pointer; }
   .guide .g-body { padding: 4px 16px 12px; font-size: 13px; color: var(--muted); }
@@ -311,8 +314,12 @@ const defState = () => ({
 });
 let S = load();
 function load() {
-  try { const raw = localStorage.getItem(KEY); if (raw) return Object.assign(defState(), JSON.parse(raw)); } catch (e) {}
-  return defState();
+  const fresh = defState();
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) { const saved = JSON.parse(raw); if (saved && saved.user) fresh.user = saved.user; }
+  } catch (e) {}
+  return fresh;
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 
@@ -606,6 +613,26 @@ function applyDoc(type, t, name) {
 }
 
 
+function deleteDoc(i) {
+  const d = S.docs[i];
+  if (!d) return;
+  if (d.formIdx != null) {
+    S.forms.splice(d.formIdx, 1);
+    S.docs.forEach(o => { if (o.formIdx != null && o.formIdx > d.formIdx) o.formIdx--; });
+  } else if (d.type === "bl") {
+    S.bl = { has: false, amount: 0, tax: 0 };
+  } else if (d.type === "insurance") {
+    S.priv.lifeIns = 0;
+  } else if (d.type === "miluim") {
+    S.personal.reservistDays = 0;
+  } else if (d.type === "t161") {
+    S.sev.has = false;
+  }
+  S.docs.splice(i, 1);
+  if (!S.forms.length) { S.personal.yearFromDoc = false; }
+  save(); render();
+}
+
 async function handleFiles(files) {
   for (const file of files) {
     let entry = { name: file.name, type: "unknown", level: "err", msg: "" };
@@ -618,7 +645,9 @@ async function handleFiles(files) {
           entry.msg = "הקובץ סרוק ללא שכבת טקסט — הורד מקור דיגיטלי מהאתר, או הזן ידנית";
         } else {
           entry.type = classifyDoc(t);
+          const formsBefore = S.forms.length;
           const r = applyDoc(entry.type, t, file.name);
+          if (S.forms.length > formsBefore) entry.formIdx = formsBefore;
           entry.level = r.level; entry.msg = r.msg;
         }
       }
@@ -634,9 +663,10 @@ const DOC_TYPE_HEB = { form106: "106 / נספח ב'", bl: "ביטוח לאומי
   miluim: "מילואים", bank867: "טופס 867", t161: "טופס 161", unknown: "לא מזוהה" };
 
 function renderDocs() {
-  const rows = S.docs.map(d =>
+  const rows = S.docs.map((d, i) =>
     "<div class='doc-row'><span class='tchip " + d.level + "'>" + (DOC_TYPE_HEB[d.type] || d.type) + "</span>" +
-    "<div><div>" + esc(d.name) + "</div><div class='sum'>" + d.msg + "</div></div></div>").join("");
+    "<div style='flex:1'><div>" + esc(d.name) + "</div><div class='sum'>" + d.msg + "</div></div>" +
+    "<button class='doc-del' data-deldoc='" + i + "' title='מחיקת הקובץ והנתונים שחולצו ממנו'>✕</button></div>").join("");
   const parsed = S.forms.length;
   return "<h2>זרקו לכאן את המסמכים — אנחנו נבין לבד" +
     (S.forms.length ? "<span class='year-badge'>שנת מס " + S.personal.year + "</span>" : "") + "</h2>" +
@@ -924,6 +954,7 @@ function wire(root) {
   const q = (sel, fn) => root.querySelectorAll(sel).forEach(b => b.addEventListener("click", fn.bind(null, b)));
   const ey = root.querySelector("[data-edityear]");
   if (ey) ey.addEventListener("click", e => { e.preventDefault(); S.editYear = true; render(); });
+  root.querySelectorAll("[data-deldoc]").forEach(el => el.addEventListener("click", () => deleteDoc(+el.dataset.deldoc)));
   root.querySelectorAll("[data-kidyear]").forEach(el => el.addEventListener("input", () => {
     const y = parseInt(el.value);
     if (y >= 2000 && y <= 2026) { S.kids.list[+el.dataset.kidyear].birth = y + "-01-01"; save(); }

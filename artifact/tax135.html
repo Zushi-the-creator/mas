@@ -132,6 +132,17 @@
 
   #stepsNav { display: block; }
   .pbar-wrap { width: 100%; }
+  /* --- מודאל הרשמה --- */
+  .modal-bg[hidden] { display: none !important; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(20,25,12,.45); display: flex;
+    align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+  .modal { background: var(--card); border-radius: 20px; padding: 28px; max-width: 400px; width: 100%;
+    box-shadow: 0 24px 60px -20px rgba(0,0,0,.35); animation: popIn .35s cubic-bezier(.34,1.56,.64,1) both; }
+  .modal h3 { margin: 0 0 4px; font-size: 17px; }
+  .modal p { font-size: 13px; color: var(--muted); margin: 0 0 16px; }
+  .modal .field { margin-bottom: 12px; }
+  .reg-err { color: var(--bad-ink); font-size: 12.5px; min-height: 16px; }
+
   /* --- פס התקדמות --- */
   .pbar-wrap { margin-bottom: 22px; }
   .pbar { height: 8px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; }
@@ -203,7 +214,21 @@
   <nav class="steps" id="stepsNav"></nav>
   <div class="card" id="stepBody"></div>
 
-  <footer>הערכה בלבד — אינה ייעוץ מס. לפני הגשה אמת בסימולטור הרשמי של רשות המסים ב־gov.il.</footer>
+  <div id="regModal" class="modal-bg" hidden>
+  <form class="modal" id="regForm">
+    <h3>עוד רגע והדוח אצלך 🎉</h3>
+    <p>נשלח לך גם עדכונים חשובים על הבקשה ותזכורת לשנה הבאה. בלי ספאם.</p>
+    <div class="field"><label>שם מלא</label><input name="name" type="text" autocomplete="name"></div>
+    <div class="field"><label>אימייל</label><input name="email" type="email" autocomplete="email"></div>
+    <div class="field"><label>נייד</label><input name="phone" type="tel" autocomplete="tel"></div>
+    <div class="reg-err" id="regErr"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-start;margin-top:6px">
+      <button type="submit" class="btn btn-primary">הרשמה והורדת הדוח</button>
+      <button type="button" class="btn btn-ghost" data-regcancel>ביטול</button>
+    </div>
+  </form>
+</div>
+<footer>הערכה בלבד — אינה ייעוץ מס. לפני הגשה אמת בסימולטור הרשמי של רשות המסים ב־gov.il.</footer>
 </div>
 
 <script>/**
@@ -838,32 +863,31 @@ function renderQuestions() {
 }
 
 function renderResults() {
-  const r = calc(), rows = form135(r), docs = checklist();
+  const r = calc();
   const isRefund = r.refund >= 0;
-  const secs = [...new Set(rows.map(x => x.sec))];
-  return "<h2>תוצאות החישוב — שנת מס " + S.personal.year + "</h2>" +
-    r.warnings.map(w => "<div class='alert " + w[0] + "'>" + w[1] + "</div>").join("") +
-    "<div class='verdict " + (isRefund ? "refund" : "debt") + "'><div class='label'>" + (isRefund ? "🎉 מגיע לך החזר של" : "⚠️ חוב משוער — אל תגיש") + "</div>" +
+  const reds = r.warnings.filter(w => w[0] === "red");
+  return "<h2 style='margin-bottom:10px'>התוצאה שלך — שנת מס " + S.personal.year + "</h2>" +
+    reds.map(w => "<div class='alert red'>" + w[1] + "</div>").join("") +
+    "<div class='verdict " + (isRefund ? "refund" : "debt") + "'><div class='label'>" +
+    (isRefund ? "🎉 מגיע לך החזר של" : "⚠️ החישוב מצביע על חוב — אל תגיש") + "</div>" +
     "<div class='amount' id='refundAmount' data-target='" + Math.abs(Math.round(r.refund)) + "'>0 ₪</div>" +
     "<div class='label'>רמת ביטחון: " + r.confidence + "</div></div>" +
-    "<div class='calc-grid'>" +
-    cCard("הכנסה חייבת", [["משכורת מטופסי 106", r.sumSalary], ["תקבולי ביטוח לאומי", r.blInc], ["פיצויים חייבים", r.sevTaxable]].filter(x => x[1] > 0), ["סה״כ", r.income]) +
-    cCard("מס ברוטו לפי מדרגות", r.bt.rows.map(b => [b.label, b.tax]).concat(r.yasef ? [["מס יסף 3%", r.yasef]] : []), ["סה״כ מס ברוטו", r.bt.total + r.yasef]) +
-    cCard("נקודות זיכוי — " + r.cp.total.toFixed(2) + " נק׳", r.cp.bd.map(b => [b[0], b[1] + " נק׳", true]), ["שווי כספי", r.cpValue]) +
-    cCard("זיכויים נוספים", [["זיכוי קצבה (35%)", r.pensionCredit], ["ביטוח חיים (25%)", r.lifeCredit], ["תרומות (35%)", r.donCredit]], ["סה״כ כל הזיכויים", r.credits]) +
-    cCard("שורה תחתונה", [["מס ברוטו + יסף", r.bt.total + r.yasef], ["פחות: זיכויים", -r.credits], ["מס נטו לתשלום", r.netTax], ["מס ששולם בפועל", r.paid]], [isRefund ? "החזר" : "חוב", Math.abs(r.refund)]) +
-    "</div>" +
-    "<h3>מילוי טופס 135 — שדה אחרי שדה</h3>" +
-    secs.map(sec => "<details open><summary>" + sec + "</summary><div class='tbl-wrap'><table><thead><tr><th>שדה</th><th>תיאור</th><th>ערך</th></tr></thead><tbody>" +
-      rows.filter(x => x.sec === sec).map(x => "<tr><td class='code'>" + x.code + "</td><td>" + x.label + "</td><td class='num'>" + x.val + "</td></tr>").join("") +
-      "</tbody></table></div></details>").join("") +
-    "<h3>מסמכים לצרף בהגשה</h3><ul class='docs'>" + docs.map(d => "<li>" + d + "</li>").join("") + "</ul>" +
-    "<div class='actions no-print'>" +
-    "<button class='btn btn-primary' data-print>הדפס / שמור כ-PDF</button>" +
-    "<button class='btn btn-ghost' data-export>הורד נתונים (JSON)</button>" +
-    "<button class='btn btn-ghost' data-reset>אפס הכל</button></div>" +
-    "<div class='note'>לפני הגשה אמת בסימולטור הרשמי של רשות המסים ב-gov.il. פער עד ±10% — בטוח להגיש; פער גדול יותר — בדוק שוב את הנתונים. ההגשה עצמה: gov.il ← ״טופס 135 מקוון״ ← הזדהות ← מילוי לפי הטבלה למעלה + צירוף המסמכים.</div>";
+    (isRefund
+      ? "<div style='text-align:center;margin-top:24px'>" +
+        "<button class='btn btn-primary' data-getreport style='font-size:16px;padding:13px 36px'>📄 הורדת דוח ההגשה המלא</button>" +
+        "<div style='font-size:12.5px;color:var(--muted);margin-top:9px'>מילוי טופס 135 שדה-שדה · רשימת מסמכים · הוראות הגשה — בהרשמה קצרה</div></div>"
+      : "<div style='text-align:center;color:var(--muted);font-size:13.5px;margin-top:16px'>במצב של חוב עדיף פשוט לא להגיש — ולא עולה לך כלום 🙂</div>") +
+    "<details style='margin-top:28px'><summary style='cursor:pointer;color:var(--muted);font-size:13px'>איך הגענו למספר?</summary>" +
+    "<div class='calc-grid' style='margin-top:14px'>" +
+    cCard("הכנסה חייבת", [["משכורות", r.sumSalary], ["ביטוח לאומי", r.blInc], ["פיצויים חייבים", r.sevTaxable]].filter(x => x[1] > 0), ["סה\"כ", r.income]) +
+    cCard("מס לפי מדרגות", r.bt.rows.map(b => [b.label, b.tax]).concat(r.yasef ? [["מס יסף", r.yasef]] : []), ["סה\"כ מס ברוטו", r.bt.total + r.yasef]) +
+    cCard("נקודות זיכוי — " + r.cp.total.toFixed(2), r.cp.bd.map(b => [b[0], b[1] + " נק'", true]), ["שווי", r.cpValue]) +
+    cCard("זיכויים נוספים", [["קצבה (35%)", r.pensionCredit], ["ביטוח חיים (25%)", r.lifeCredit], ["תרומות (35%)", r.donCredit]], ["סה\"כ זיכויים", r.credits]) +
+    cCard("שורה תחתונה", [["מס נטו", r.netTax], ["מס ששולם בפועל", r.paid]], [isRefund ? "החזר" : "חוב", Math.abs(r.refund)]) +
+    "</div></details>" +
+    "<div class='note'>ההערכה מבוססת על המסמכים שהעלית ואינה ייעוץ מס. לפני הגשה מומלץ לאמת בסימולטור הרשמי של רשות המסים.</div>";
 }
+
 function cCard(title, rows, total) {
   return "<div class='calc-card'><h4>" + title + "</h4>" +
     rows.map(x => "<div class='rowline'><span>" + x[0] + "</span><span class='v'>" + (x[2] ? x[1] : fmt(x[1]) + " ₪") + "</span></div>").join("") +
@@ -920,6 +944,69 @@ document.getElementById("stepsNav").addEventListener("click", e => {
   const b = e.target.closest("[data-stage]");
   if (b && +b.dataset.stage < 3) { S.step = +b.dataset.stage; save(); render(); }
 });
+/* ---------- דוח הגשה להורדה ---------- */
+function reportHTML(r) {
+  const rows = form135(r);
+  const secs = [...new Set(rows.map(x => x.sec))];
+  const tbl = secs.map(sec => "<h3>" + sec + "</h3><table><tr><th>שדה</th><th>תיאור</th><th>ערך</th></tr>" +
+    rows.filter(x => x.sec === sec).map(x => "<tr><td><b>" + x.code + "</b></td><td>" + x.label + "</td><td>" + x.val + "</td></tr>").join("") +
+    "</table>").join("");
+  const docs = checklist().map(d => "<li>" + d + "</li>").join("");
+  return "<!doctype html><html lang='he' dir='rtl'><head><meta charset='utf-8'><title>מס חוזר — דוח הגשה " + S.personal.year + "</title>" +
+    "<style>body{font-family:Arial,sans-serif;direction:rtl;max-width:750px;margin:30px auto;padding:0 16px;color:#26301a;line-height:1.6}" +
+    "h1{color:#5d7f26}h3{border-bottom:2px solid #cde49a;padding-bottom:4px}table{width:100%;border-collapse:collapse;font-size:14px}" +
+    "td,th{border:1px solid #e0eebc;padding:6px 10px;text-align:right}th{background:#f8fbef}.hero{background:#eef5d8;border-radius:14px;padding:20px;text-align:center;font-size:20px}" +
+    ".hero b{font-size:34px;color:#5d7f26}</style></head><body>" +
+    "<h1>💸 מס חוזר — דוח הגשה לשנת המס " + S.personal.year + "</h1>" +
+    (S.user ? "<p>הוכן עבור: " + S.user.name + (S.personal.id ? " (ת\"ז " + S.personal.id + ")" : "") + "</p>" : "") +
+    "<div class='hero'>החזר משוער: <b>" + fmt(Math.abs(r.refund)) + " ₪</b></div>" +
+    "<h2>מילוי טופס 135 — שדה אחרי שדה</h2>" + tbl +
+    "<h2>מסמכים לצרף להגשה</h2><ul>" + docs + "</ul>" +
+    "<h2>איך מגישים</h2><ol><li>היכנסו ל-gov.il וחפשו \"טופס 135 מקוון\" או \"בקשה להחזר מס לשכירים\"</li>" +
+    "<li>הזדהות ממשלתית</li><li>העתיקו את הערכים מהטבלה למעלה — שדה שדה</li>" +
+    "<li>צרפו את המסמכים מהרשימה</li><li>שדרו. טיפול: 4–12 שבועות, ההחזר ישירות לחשבון הבנק</li></ol>" +
+    "<p style='color:#6b7460;font-size:12px'>הערכה בלבד — אינה ייעוץ מס. הופק על ידי מס חוזר.</p></body></html>";
+}
+function reportText(r) {
+  const rows = form135(r);
+  return "מס חוזר — דוח הגשה לשנת " + S.personal.year + "\nהחזר משוער: " + fmt(Math.abs(r.refund)) + " ש\"ח\n\n" +
+    "מילוי טופס 135:\n" + rows.map(x => x.code + " | " + x.label + " | " + x.val).join("\n") +
+    "\n\nמסמכים לצרף:\n" + checklist().map(d => "- " + d).join("\n");
+}
+async function doDownload() {
+  const r = calc();
+  const dl = (window.claude && claude.use) ? await claude.use("downloads") : null;
+  if (!dl) { alert("ההורדה זמינה בתצוגת הדף המלאה בלבד"); return; }
+  try {
+    await dl.save({ filename: "mas-hozer-" + S.personal.year + ".html", data: reportHTML(r) });
+  } catch (e) {
+    if (e && e.code === "extension_not_enabled") {
+      try { await dl.save({ filename: "mas-hozer-" + S.personal.year + ".txt", data: reportText(r) }); } catch (e2) {}
+    } else if (!e || e.code !== "declined") {
+      alert("ההורדה נכשלה — נסו שוב בעוד רגע");
+    }
+  }
+}
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-getreport]")) {
+    if (S.user) doDownload();
+    else document.getElementById("regModal").hidden = false;
+  }
+  if (e.target.closest("[data-regcancel]")) document.getElementById("regModal").hidden = true;
+});
+document.getElementById("regForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const user = { name: (fd.get("name") || "").trim(), email: (fd.get("email") || "").trim(), phone: (fd.get("phone") || "").trim() };
+  if (!user.name || !/.+@.+\..+/.test(user.email)) {
+    document.getElementById("regErr").textContent = "נא למלא שם ואימייל תקין";
+    return;
+  }
+  S.user = user; save();
+  document.getElementById("regModal").hidden = true;
+  doDownload();
+});
+
 render();
 </script>
 

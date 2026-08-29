@@ -130,6 +130,20 @@
   .note { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 12.5px; color: var(--muted); margin-top: 18px; }
   footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 36px; }
 
+  #stepsNav { display: block; }
+  .pbar-wrap { width: 100%; }
+  /* --- פס התקדמות --- */
+  .pbar-wrap { margin-bottom: 22px; }
+  .pbar { height: 8px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; }
+  .pfill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+    transition: width .7s cubic-bezier(.4,0,.2,1); }
+  .pstages { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+  .pstages span { cursor: pointer; }
+  .pstages span.on { color: var(--accent-strong); font-weight: 700; }
+  .pstages span.done { color: var(--accent); }
+  .year-badge { display: inline-block; background: var(--butter); color: var(--ink); border-radius: 999px;
+    padding: 3px 14px; font-size: 12.5px; font-weight: 700; margin-inline-start: 8px; }
+
   /* --- שלב המסמכים --- */
   .dropzone { border: 2px dashed var(--accent); border-radius: 18px; background: var(--accent-soft);
     padding: 34px 20px; text-align: center; cursor: pointer; display: block; transition: background .2s; }
@@ -253,7 +267,7 @@ const DON_RATE = 0.35, DON_MIN = 207, DON_INCOME_CAP = 0.30, DON_ABS_CAP = 10354
 const HIGH_REFUND = 30000;
 
 /* ---------- state ---------- */
-const KEY = "tax135-v2";
+const KEY = "tax135-v3";
 const empty106 = () => ({ employer: "", start: "", end: "", salary: 0, tax: 0, yasef: 0, insurable: 0, empPension: 0, emplerPension: 0, lifeIns: 0, shifts: 0, havraa: 0 });
 const defState = () => ({
   step: 1,
@@ -513,6 +527,10 @@ function classifyDoc(t) {
 
 function applyDoc(type, t, name) {
   const fmtS = n => (n == null ? "—" : fmt(n) + " ₪");
+  const yr = t.match(/לשנת המס\s*(20\d\d)/) || t.match(/(20\d\d)\s*סמה תנשל/);
+  if (yr) S.personal.year = +yr[1];
+  const idm = t.match(/(?:^|\D)(\d{9})(?:\D|$)/);
+  if (idm && !S.personal.id) S.personal.id = idm[1];
   if (type === "form106") {
     const f = empty106();
     f.salary = numNear(t, codeAnchor("158/172")) ?? 0;
@@ -595,7 +613,8 @@ function renderDocs() {
     "<div class='doc-row'><span class='tchip " + d.level + "'>" + (DOC_TYPE_HEB[d.type] || d.type) + "</span>" +
     "<div><div>" + esc(d.name) + "</div><div class='sum'>" + d.msg + "</div></div></div>").join("");
   const parsed = S.forms.length;
-  return "<h2>זרקו לכאן את המסמכים — אנחנו נבין לבד</h2>" +
+  return "<h2>זרקו לכאן את המסמכים — אנחנו נבין לבד" +
+    (S.forms.length ? "<span class='year-badge'>שנת מס " + S.personal.year + "</span>" : "") + "</h2>" +
     "<p style='color:var(--muted);font-size:13.5px;margin-top:-8px'>טופסי 106 או נספחי ב', אישורי ביטוח לאומי, ביטוח חיים, מילואים — כל PDF. הפענוח קורה <b>בדפדפן שלכם בלבד</b> — שום קובץ לא נשלח לשום מקום.</p>" +
     "<label class='dropzone' id='dz'><div class='big'>📄</div><b>גררו קבצים לכאן או לחצו לבחירה</b>" +
     "<div style='font-size:12.5px;color:var(--muted);margin-top:4px'>אפשר כמה קבצים בבת אחת</div>" +
@@ -603,6 +622,7 @@ function renderDocs() {
     (rows ? "<div class='doc-list'>" + rows + "</div>" : "") +
     (parsed ? "<div class='alert green' style='margin-top:14px'>✓ חולצו נתונים מ-" + parsed +
       " מקורות שכר. בשלבים הבאים נשאל רק מה שהמסמכים לא מספרים (ילדים, מצב משפחתי) — והכל כבר ממולא מראש.</div>" : "") +
+    (S.forms.length ? "<details style='margin-top:12px'><summary style='cursor:pointer;font-size:13.5px;font-weight:600'>🖊 בדיקה ועריכה של הנתונים שנשאבו</summary><div style='padding-top:10px'>" + renderFormsInner() + "</div></details>" : "") +
     "<h3>מאיפה משיגים את המסמכים? (2 דקות)</h3><div class='guide'>" +
     guideItem("📋 טופסי 106 — ישירות מרשות המסים, בלי לבקש מהמעסיק",
       "<ol><li>היכנסו ל-<a href='https://secapp.taxes.gov.il/taxes-login/login/general' target='_blank' rel='noopener'>האזור האישי של רשות המסים</a></li><li>הירשמו או התחברו (הזדהות ממשלתית)</li><li>לחצו על הכרטיסייה <b>\"טפסי 106\"</b></li><li>ייפתח ריכוז לפי שנים (2017 ואילך) — פתחו כל שנה שלא הגשתם עבורה בקשה, והורידו את ה-PDF של כל מעסיק</li><li>אפשר לבקש החזר עד 6 שנים אחורה — שווה להוריד את כולן</li></ol>") +
@@ -631,6 +651,7 @@ const CALC_TASKS = [
 let calcMode = false;
 function startCalculating() {
   calcMode = true;
+  renderProgress(92);
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   document.getElementById("stepBody").innerHTML =
     "<div class='calc-stage'>" +
@@ -643,7 +664,7 @@ function startCalculating() {
   const items = document.querySelectorAll(".calc-tasks li");
   const stepMs = reduced ? 0 : 600;
   items.forEach((li, i) => setTimeout(() => li.classList.add("on"), stepMs * (i + 1)));
-  setTimeout(() => { calcMode = false; S.step = 7; save(); render(); scrollTo(0, 0); },
+  setTimeout(() => { calcMode = false; S.step = 3; save(); render(); scrollTo(0, 0); },
     reduced ? 350 : stepMs * (CALC_TASKS.length + 1) + 250);
 }
 function countUp(el, target, ms) {
@@ -658,7 +679,7 @@ function countUp(el, target, ms) {
 }
 
 /* ---------- UI ---------- */
-const STEPS = ["המסמכים שלך", "פרטים אישיים", "בן/בת זוג", "ילדים", "טופסי 106", "הכנסות נוספות", "התוצאה שלך"];
+const STAGES = [{ label: "המסמכים", pct: 22 }, { label: "כמה שאלות", pct: 60 }, { label: "התוצאה", pct: 100 }];
 const fmt = n => Math.round(n).toLocaleString("he-IL");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -681,19 +702,27 @@ function set(path, v) {
   o[parts[parts.length - 1]] = v;
 }
 
+function renderProgress(pct) {
+  document.getElementById("stepsNav").innerHTML =
+    '<div class="pbar-wrap"><div class="pbar"><div class="pfill" style="width:' + pct + '%"></div></div>' +
+    '<div class="pstages">' + STAGES.map((st, i) =>
+      '<span class="' + (S.step === i + 1 ? "on" : i + 1 < S.step ? "done" : "") + '" data-stage="' + (i + 1) + '">' +
+      (i + 1 < S.step ? "✓ " : "") + st.label + "</span>").join("") + "</div></div>";
+}
 function render() {
-  document.getElementById("stepsNav").innerHTML = STEPS.map((s, i) =>
-    '<button class="' + (S.step === i + 1 ? "active" : i + 1 < S.step ? "done" : "") + '" data-step="' + (i + 1) + '">' + (i + 1) + ". " + s + "</button>").join("");
+  renderProgress(STAGES[S.step - 1].pct);
   const body = document.getElementById("stepBody");
-  body.innerHTML = [renderDocs, renderPersonal, renderSpouse, renderKids, renderForms, renderExtras, renderResults][S.step - 1]() + navButtons();
+  body.innerHTML = [renderDocs, renderQuestions, renderResults][S.step - 1]() + navButtons();
   wire(body);
   const amt = document.getElementById("refundAmount");
   if (amt) countUp(amt, +amt.dataset.target, 1400);
 }
 
 function navButtons() {
-  return '<div class="row-actions"><button class="btn btn-ghost" data-nav="back"' + (S.step === 1 ? " disabled" : "") + ">חזור</button>" +
-    (S.step < 7 ? '<button class="btn btn-primary" data-nav="next">' + (S.step === 6 ? "חשבו לי את ההחזר ✨" : "המשך") + "</button>" : '<span style="color:var(--muted);font-size:13px">סוף התהליך ✓</span>') + "</div>";
+  return '<div class="row-actions"><button class="btn btn-ghost" data-nav="back"' + (S.step === 1 ? " disabled" : "") + ">חזרה</button>" +
+    (S.step < 3
+      ? '<button class="btn btn-primary" data-nav="next">' + (S.step === 2 ? "חשבו לי את ההחזר ✨" : "ממשיכים") + "</button>"
+      : '<span style="color:var(--muted);font-size:13px">זהו! 🎉</span>') + "</div>";
 }
 
 function renderPersonal() {
@@ -740,8 +769,8 @@ function renderKids() {
     "<button class='btn btn-primary' data-addkid>+ הוסף ילד/ה</button>";
 }
 
-function renderForms() {
-  return "<h2>טופסי 106</h2><p style='color:var(--muted);font-size:13.5px;margin-top:-8px'>טופס לכל מעסיק שעבדת אצלו בשנת המס. כל הסכומים שנתיים בש״ח.</p>" +
+function renderFormsInner() {
+  return "" + "<p style='color:var(--muted);font-size:13.5px;margin-top:-8px'>טופס לכל מעסיק שעבדת אצלו בשנת המס. כל הסכומים שנתיים בש״ח.</p>" +
     S.forms.map((f, i) =>
       "<div class='subcard'><div class='head'><strong>" + (esc(f.employer) || "מעסיק " + (i + 1)) + "</strong><button class='btn-danger' data-delform='" + i + "'>הסר</button></div><div class='grid'>" +
       fld("שם מעסיק", "forms." + i + ".employer") +
@@ -774,6 +803,33 @@ function renderExtras() {
     fld("ביטוח אובדן כושר עבודה (₪)", "priv.disability", "number") + "</div>" +
     "<h3>תרומות (סעיף 46)</h3><div class='grid'>" + fld("סך תרומות שנתי למוסדות מאושרים (₪)", "donations", "number") + "</div>" +
     "<p style='font-size:12.5px;color:var(--muted)'>מינימום מוכר: 207 ₪ בשנה. זיכוי 35%.</p>";
+}
+
+function renderQuestions() {
+  const kidsRows = S.kids.list.map((k, i) =>
+    "<div style='display:flex;gap:10px;align-items:end;margin-bottom:8px'>" +
+    "<div class='field' style='flex:1'><label>שנת לידה של ילד/ה " + (i + 1) + "</label>" +
+    "<input type='number' min='2000' max='2026' data-kidyear='" + i + "' value='" + (k.birth ? k.birth.slice(0, 4) : "") + "'></div>" +
+    "<button class='btn-danger' data-delkid='" + i + "'>הסר</button></div>").join("");
+  return "<h2>כמה שאלות שהמסמכים לא יודעים לענות עליהן</h2>" +
+    "<p style='color:var(--muted);font-size:13px;margin-top:-8px'>שנת המס, השכר והניכויים כבר נשאבו מהמסמכים" +
+    (S.personal.id ? " (ת\u0022ז " + S.personal.id + ")" : "") + ".</p>" +
+    "<div class='grid'>" +
+    fld("שנת המס לבקשה", "personal.year", "select", [[2024, "2024"], [2025, "2025"]]) +
+    fld("מצב משפחתי", "personal.marital", "select", [["single", "רווק/ה"], ["married", "נשוי/אה"], ["divorced", "גרוש/ה"], ["widowed", "אלמן/ה"]]) +
+    "</div>" +
+    chk("המגישה היא אישה (תוספת 0.5 נקודות זיכוי)", "personal.isFemale") +
+    "<h3>ילדים מתחת לגיל 19</h3>" + kidsRows +
+    "<button class='btn btn-ghost' data-addkid style='margin-bottom:10px'>+ הוסף ילד/ה</button>" +
+    (S.kids.list.length ? "<div class='grid'>" +
+      fld("מי מקבל/ת את קצבת הילדים?", "kids.allowance", "select", [["spouse", "בן/בת הזוג"], ["self", "אני"], ["split", "חצי-חצי"]]) + "</div>" +
+      chk("הורה יחיד (חד-הורי)", "kids.single") : "") +
+    "<h3>עוד דברים ששווים כסף (אם רלוונטי)</h3><div class='grid'>" +
+    fld("ימי מילואים בשנת המס (5+ = נקודה)", "personal.reservistDays", "number") +
+    fld("תרומות למוסדות מוכרים (שקלים)", "donations", "number") +
+    fld("מס שנוכה על ידי ביטוח לאומי (שקלים)", "bl.tax", "number") +
+    fld("פרמיית ביטוח חיים שנתית (נשאב מהאישור אם הועלה)", "priv.lifeIns", "number") +
+    "</div>";
 }
 
 function renderResults() {
@@ -833,10 +889,14 @@ function wire(root) {
     });
   });
   root.querySelectorAll("[data-nav]").forEach(b => b.addEventListener("click", () => {
-    if (b.dataset.nav === "next" && S.step === 6) { save(); startCalculating(); return; }
+    if (b.dataset.nav === "next" && S.step === 2) { save(); startCalculating(); return; }
     S.step += b.dataset.nav === "next" ? 1 : -1; save(); render(); window.scrollTo(0, 0);
   }));
   const q = (sel, fn) => root.querySelectorAll(sel).forEach(b => b.addEventListener("click", fn.bind(null, b)));
+  root.querySelectorAll("[data-kidyear]").forEach(el => el.addEventListener("input", () => {
+    const y = parseInt(el.value);
+    if (y >= 2000 && y <= 2026) { S.kids.list[+el.dataset.kidyear].birth = y + "-01-01"; save(); }
+  }));
   q("[data-addkid]", () => { S.kids.list.push({ name: "", birth: "", id: "" }); save(); render(); });
   q("[data-delkid]", b => { S.kids.list.splice(+b.dataset.delkid, 1); save(); render(); });
   q("[data-addform]", () => { S.forms.push(empty106()); save(); render(); });
@@ -850,7 +910,8 @@ function wire(root) {
   q("[data-reset]", () => { if (confirm("לאפס את כל הנתונים?")) { S = defState(); save(); render(); } });
 }
 document.getElementById("stepsNav").addEventListener("click", e => {
-  const b = e.target.closest("[data-step]"); if (b) { S.step = +b.dataset.step; save(); render(); }
+  const b = e.target.closest("[data-stage]");
+  if (b && +b.dataset.stage < 3) { S.step = +b.dataset.stage; save(); render(); }
 });
 render();
 </script>

@@ -424,6 +424,8 @@ function calc() {
   if (S.spouse.exists && S.spouse.noIncome) warnings.push(["yellow", "בן/בת הזוג ללא הכנסה — נקודות הזיכוי שלו/ה אינן עוברות אליך."]);
   if (S.sev.has && S.sev.type === "cash" && sevTaxable > 0) warnings.push(["yellow", "פיצויים במזומן — מומלץ לבקש פריסה (סעיף 8(ג)) דרך טופס 1301, לא 135."]);
 
+  const unparsed = S.docs.filter(d => d.level === "err" || d.type === "unknown").length;
+  if (unparsed) warnings.push(["yellow", unparsed + " מסמכים לא פוענחו — ייתכן שחסרות הכנסות או זיכויים והתוצאה מוטה. בדוק במסך המסמכים או הזן ידנית."]);
   const confidence = warnings.some(w => w[0] === "red") ? "נמוכה" : warnings.some(w => w[0] === "yellow") ? "בינונית" : "גבוהה";
   return { income, sumSalary, blInc, sevTaxable, bt, yasef, cp, cpValue, pensionCredit, lifeCredit, donCredit, credits, netTax, paid, refund, warnings, confidence,
     sumInsurable, sumEmpPension, sumLife, sumTax, sumYasefW, blTax };
@@ -567,13 +569,16 @@ const firstOf = (t, extractors) => { for (const e of extractors) { const v = e()
 
 function classifyDoc(t) {
   if (codeAnchor("158/172").test(t)) return "form106";
-  if (heAnchor("אבטלה").test(t) || heAnchor("דמי לידה").test(t) || heAnchor("תגמולי מילואים").test(t)) {
-    if (heAnchor("ביטוח לאומי").test(t)) return "bl";
-  }
-  if (heAnchor("פרמיה לביטוח חיים").test(t) || (codeAnchor("036/081").test(t) && heAnchor("ביטוח").test(t))) return "insurance";
+  // טופס 106 מלא מהמעסיק (לא נספח ב') — מזוהה לפני 161 כדי לא להתבלבל משדות הפיצויים שבו
+  if ((/106/.test(t) && (heAnchor("תשלומים וניכויים").test(t) || heAnchor("משכר עבודה").test(t))) ||
+      (heAnchor("משכורת").test(t) && heAnchor("ניכויי מס").test(t))) return "form106full";
+  if ((heAnchor("אבטלה").test(t) || heAnchor("דמי לידה").test(t) || heAnchor("תגמולי מילואים").test(t) ||
+       heAnchor("תשלומי קצבה").test(t)) && (heAnchor("לאומי").test(t) || heAnchor("המוסד").test(t))) return "bl";
+  if (heAnchor("פרמיה").test(t) && heAnchor("ביטוח חיים").test(t)) return "insurance";
+  if (codeAnchor("036/081").test(t) && heAnchor("ביטוח").test(t)) return "insurance";
   if (heAnchor("מילואים").test(t) && (/3010/.test(t) || heAnchor("ימי מילואים").test(t))) return "miluim";
   if (/867/.test(t) && (heAnchor("ניירות ערך").test(t) || heAnchor("רווח הון").test(t) || heAnchor("ריבית").test(t))) return "bank867";
-  if (/161/.test(t) && heAnchor("פיצו").test(t)) return "t161";
+  if (/161/.test(t) && heAnchor("פיצו").test(t) && heAnchor("מענק").test(t)) return "t161";
   return "unknown";
 }
 
@@ -599,6 +604,20 @@ function applyDoc(type, t, name) {
     S.forms.push(f);
     return { level: "ok", msg: "שכר " + fmtS(f.salary) + " · מס " + fmtS(f.tax) +
       (f.yasef ? " · מס יסף " + fmtS(f.yasef) : "") + " · פנסיה עובד " + fmtS(f.empPension) };
+  }
+  if (type === "form106full") {
+    const f = empty106();
+    f.salary = numNear(t, heAnchor("משכורת"), 90) ?? 0;
+    f.tax = numNear(t, heAnchor("ניכויי מס"), 90) ?? numNear(t, heAnchor("מס הכנסה"), 90) ?? 0;
+    const y = numNear(t, heAnchor("מס יסף"), 60);
+    f.yasef = y != null && y < 100000 ? y : 0;
+    f.insurable = numNear(t, heAnchor("הכנסה מבוטחת"), 90) ?? numNear(t, heAnchor("ברוטו לקיצבה"), 90) ?? 0;
+    f.empPension = numNear(t, heAnchor("הפקדות העובד"), 90) ?? 0;
+    f.employer = name;
+    if (!f.salary) return { level: "warn", msg: "זוהה טופס 106 מלא אך החילוץ חלקי — העלה במקום זאת את נספח ב' מהאזור האישי (מדריך למטה), או הזן ידנית" };
+    S.forms.push(f);
+    return { level: "warn", msg: "טופס 106 מלא: שכר " + fmtS(f.salary) + " · מס " + fmtS(f.tax) +
+      (f.yasef ? " · מס יסף " + fmtS(f.yasef) : "") + " — פורמט מורכב, מומלץ לוודא בעריכה למטה או להעלות נספח ב'" };
   }
   if (type === "bl") {
     const gross = firstOf(t, [
@@ -660,7 +679,8 @@ async function handleFiles(files) {
       if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") {
         entry.msg = "כרגע נתמכים קובצי PDF בלבד (צילומים — בקרוב)";
       } else {
-        const t = await pdfToText(file);
+              const t0 = await pdfToText(file);
+        const t = t0.replace(/[\u00a0\u200e\u200f]/g, " ").replace(/[\u0591-\u05c7]/g, "").replace(/ {2,}/g, " ");
         if (t.replace(/\s/g, "").length < 40) {
           entry.msg = "הקובץ סרוק ללא שכבת טקסט — הורד מקור דיגיטלי מהאתר, או הזן ידנית";
         } else {
@@ -679,7 +699,7 @@ async function handleFiles(files) {
   save(); render();
 }
 
-const DOC_TYPE_HEB = { form106: "106 / נספח ב'", bl: "ביטוח לאומי", insurance: "ביטוח חיים",
+const DOC_TYPE_HEB = { form106: "106 / נספח ב'", form106full: "טופס 106 מלא", bl: "ביטוח לאומי", insurance: "ביטוח חיים",
   miluim: "מילואים", bank867: "טופס 867", t161: "טופס 161", unknown: "לא מזוהה" };
 
 function renderDocs() {

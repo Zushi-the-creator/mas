@@ -528,7 +528,7 @@ function classifyDoc(t) {
 function applyDoc(type, t, name) {
   const fmtS = n => (n == null ? "—" : fmt(n) + " ₪");
   const yr = t.match(/לשנת המס\s*(20\d\d)/) || t.match(/(20\d\d)\s*סמה תנשל/);
-  if (yr) S.personal.year = +yr[1];
+  if (yr) { S.personal.year = +yr[1]; S.personal.yearFromDoc = true; }
   const idm = t.match(/(?:^|\D)(\d{9})(?:\D|$)/);
   if (idm && !S.personal.id) S.personal.id = idm[1];
   if (type === "form106") {
@@ -814,8 +814,13 @@ function renderQuestions() {
   return "<h2>כמה שאלות שהמסמכים לא יודעים לענות עליהן</h2>" +
     "<p style='color:var(--muted);font-size:13px;margin-top:-8px'>שנת המס, השכר והניכויים כבר נשאבו מהמסמכים" +
     (S.personal.id ? " (ת\u0022ז " + S.personal.id + ")" : "") + ".</p>" +
+    (S.personal.yearFromDoc && !S.editYear
+      ? "<div style='font-size:13px;color:var(--muted);margin-bottom:10px'>שנת המס: <b style='color:var(--ink)'>" + S.personal.year +
+        "</b> (זוהתה מהמסמכים) · <a href='#' data-edityear style='color:var(--accent-strong)'>לא נכון?</a></div>"
+      : "") +
     "<div class='grid'>" +
-    fld("שנת המס לבקשה", "personal.year", "select", [[2024, "2024"], [2025, "2025"]]) +
+    (S.personal.yearFromDoc && !S.editYear ? "" :
+      fld("שנת המס לבקשה", "personal.year", "select", [[2024, "2024"], [2025, "2025"]])) +
     fld("מצב משפחתי", "personal.marital", "select", [["single", "רווק/ה"], ["married", "נשוי/אה"], ["divorced", "גרוש/ה"], ["widowed", "אלמן/ה"]]) +
     "</div>" +
     chk("המגישה היא אישה (תוספת 0.5 נקודות זיכוי)", "personal.isFemale") +
@@ -893,6 +898,8 @@ function wire(root) {
     S.step += b.dataset.nav === "next" ? 1 : -1; save(); render(); window.scrollTo(0, 0);
   }));
   const q = (sel, fn) => root.querySelectorAll(sel).forEach(b => b.addEventListener("click", fn.bind(null, b)));
+  const ey = root.querySelector("[data-edityear]");
+  if (ey) ey.addEventListener("click", e => { e.preventDefault(); S.editYear = true; render(); });
   root.querySelectorAll("[data-kidyear]").forEach(el => el.addEventListener("input", () => {
     const y = parseInt(el.value);
     if (y >= 2000 && y <= 2026) { S.kids.list[+el.dataset.kidyear].birth = y + "-01-01"; save(); }

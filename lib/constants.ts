@@ -2,8 +2,9 @@
 
 export type TaxYear = 2024 | 2025;
 
+// המדרגה העליונה היא 47% פתוחה; מס יסף (3% מעל 721,560) מחושב בנפרד ומצטרף אליה — לא כפול.
 // מקור: אומת מול הסימולטור הרשמי של רשות המסים (07/2026).
-// מדרגת 35% עד 560,280 ו-47% עד 721,560 — לא 526,920/688,200 כפי שהופיע במפרט המקורי.
+// מדרגת 35% נמשכת עד 560,280 (לא 526,920 כפי שהופיע במפרט המקורי).
 export const TAX_BRACKETS: Record<TaxYear, Array<{ cap: number; rate: number }>> = {
   2024: [
     { cap: 84120, rate: 0.10 },
@@ -11,8 +12,7 @@ export const TAX_BRACKETS: Record<TaxYear, Array<{ cap: number; rate: number }>>
     { cap: 193800, rate: 0.20 },
     { cap: 269280, rate: 0.31 },
     { cap: 560280, rate: 0.35 },
-    { cap: 721560, rate: 0.47 },
-    { cap: Infinity, rate: 0.50 },
+    { cap: Infinity, rate: 0.47 },
   ],
   2025: [
     { cap: 84120, rate: 0.10 },
@@ -20,8 +20,7 @@ export const TAX_BRACKETS: Record<TaxYear, Array<{ cap: number; rate: number }>>
     { cap: 193800, rate: 0.20 },
     { cap: 269280, rate: 0.31 },
     { cap: 560280, rate: 0.35 },
-    { cap: 721560, rate: 0.47 },
-    { cap: Infinity, rate: 0.50 },
+    { cap: Infinity, rate: 0.47 },
   ],
 };
 
